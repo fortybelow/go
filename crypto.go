@@ -6,5 +6,5 @@ import(
 )
 
 func main() {
-	fmt.Println(convert.HexToValue("Hello, World!"))
+	fmt.Println(convert.Decode_h("6D"))
 }

@@ -74,7 +74,8 @@ func (n Hex_t) String() string {
 	return string(x)
 }
 
-func HexToValue(s string) Hex_t {
+
+func Decode_h(s string) Hex_t {
 	m := Map_h()
 	x := make(Hex_t, len(s))
 
@@ -100,7 +101,7 @@ func printMap_v(m map[uint8]uint8) {
 
 // Expects hex in Big Endian order
 // TODO{ modify s in place and return truncated s}
-func HexToBase64(s Hex_t) Base64_t {
+func Cast_htob64(s Hex_t) Base64_t {
 	rep  := make([]uint8, len(s))
 	idx  := len(rep) - 1
 
@@ -171,10 +172,10 @@ func main() {
 		fmt.Printf("Usage: ./a <Hex string> [<Hex string>]\n")
 		return
 	} else if len(os.Args) == 2 {
-		fmt.Println(HexToBase64(HexToValue(os.Args[1])))
+		fmt.Println(Cast_htob64(Decode_h(os.Args[1])))
 	} else {
-		x1 := HexToValue(os.Args[1])
-		x2 := HexToValue(os.Args[2])
+		x1 := Decode_h(os.Args[1])
+		x2 := Decode_h(os.Args[2])
 		fmt.Println(x1)
 		fmt.Println(x2, "^")
 

@@ -1,8 +1,8 @@
-package convert
+package main
 
 import( "fmt"; "io"; "os"; "io/ioutil" )
 
-var out io.Writer;
+var out io.Writer = ioutil.Discard;
 
 
 type InvalidHexCharacter   struct { arg uint8 }
@@ -51,8 +51,29 @@ func Map_b64tov() map[uint8]uint8 {
 	return m
 }
 
-type Hex_t    []uint8 // each uint8 contains 4 bits
-type Base64_t []uint8 // each uint8 contains 6 bits
+// Given a char value, returns the base 64 value
+func Map_vtob64() map[uint8]uint8 {
+	m := make(map[uint8]uint8)
+
+	for i := 'A'; i != '9'; i++ {
+		m[uint8(i)] = uint8(len(m))
+
+		if i == 'Z' {
+			i = 'a' - 1
+		} else if i == 'z' {
+			i = '0' - 1
+		}
+	}
+
+	m[uint8('9')] = uint8(len(m))
+	m[uint8('+')] = uint8(len(m))
+	m[uint8('/')] = uint8(len(m))
+
+	return m
+}
+
+type Hex_t    []uint8 // each uint8 contains two hex digits
+type Base64_t []uint8 // each uint8 contains 6 valid bits
 
 func (n Base64_t) String() string {
 	m := Map_b64tov()
@@ -66,67 +87,89 @@ func (n Base64_t) String() string {
 
 func (n Hex_t) String() string {
 	m := Map_h()
-	x := make(Hex_t, len(n))
+	x := make(Hex_t, len(n) * 2)
 
 	for i := 0; i < len(n); i++ {
-		x[i] = m[ n[i] ]
+		x[2 * i    ] = m[ n[i] & 0xF ]
+		x[2 * i + 1] = m[ n[i] & 0xF0 >> 4 ]
 	}
+
 	return string(x)
 }
 
 
 func Decode_h(s string) Hex_t {
 	m := Map_h()
-	x := make(Hex_t, len(s))
+	b := len(s) % 2
+	x := make(Hex_t, len(s) / 2 + b)
+
+	if b == 1 {
+		x[0] = m[s[0]]
+		s    = s[1:]
+	}
+
+	for i := 0; i < len(s) - 1; i += 2 {
+		// Hi << 4 + Lo : Hi Hi Hi Hi Lo Lo Lo Lo
+		x[i / 2 + b] = m[s[i]] << 4 + m[s[i + 1]]
+	}
+
+	return x
+}
+
+func Decode_b64(s string) Base64_t {
+	m := Map_vtob64()
+	x := make(Base64_t, len(s))
 
 	for i := 0; i < len(s); i++ {
 		x[i] = m[ s[i] ]
 	}
+
 	return x
 }
 
-
-func printMap_k(m map[uint8]uint8) {
-	for k, v := range m {
-		fmt.Fprintf(os.Stdout, "%v : %v\n", string(k), v)
-	}
+func Cast_htoc(h Hex_t) string {
+	return string(h)
 }
-
-func printMap_v(m map[uint8]uint8) {
-	for k, v := range m {
-		fmt.Fprintf(os.Stdout, "%v : %v\n", k, string(v))
-	}
-}
-
 
 // Expects hex in Big Endian order
-// TODO{ modify s in place and return truncated s}
-func Cast_htob64(s Hex_t) Base64_t {
-	rep  := make([]uint8, len(s))
-	idx  := len(rep) - 1
+func Cast_htob64(h Hex_t) Base64_t {
+	rep  := make([]uint8, len(h) * 2)
+	byt, bit, idx := 0, 0, len(rep) - 1
 
-	for bit  := 0; bit + 6 <= 4 * len(s); bit += 6 {
-		firstByte  := s[len(s) - 2 - bit / 4]
-		secondByte := s[len(s) - 1 - bit / 4]
+	for ; bit + 6 < 8 * len(h); bit += 6 {
 
-		if bit % 4 == 0 {
-			l, r := firstByte & 0x3, secondByte
-			rep[idx] = l << 4 + r
-		} else {
-			l, r := firstByte, secondByte & 0xC >> 2
-			rep[idx] = l << 2 + r
+		switch bit % 24 {
+			case 0:
+				x   := h[len(h) - 1 - byt]
+				byt -= 1
+				rep[idx] = x & 0x3F
+			case 6:
+				x, y := h[len(h) - 1 - byt], h[len(h) - 2 - byt]
+				rep[idx] = x & 0xC0 >> 6 + y & 0xF << 2
+			case 12:
+				x, y := h[len(h) - 1 - byt], h[len(h) - 2 - byt]
+				rep[idx] = x & 0xF0 >> 4 + y & 0x03 << 4
+			case 18:
+				x := h[len(h) - 1 - byt]
+				rep[idx] = x & 0xFC >> 2
 		}
 
-		idx -= 1
+		byt, idx = byt + 1, idx - 1
+	}
+	var val uint8
+
+	switch 8 * len(h) - bit {
+		case 2:
+			val = h[0] & 0xC0 >> 6
+		case 4:
+			val = h[0] & 0xF0 >> 4
+		case 6:
+			val = h[0] & 0xFC >> 2
 	}
 
-	switch 4 * len(s) % 6 {
-		case 2:
-			rep[idx] = s[0] & 0xC >> 2
-			idx -= 1
-		case 4:
-			rep[idx] = s[0]
-			idx -= 1
+	if val != 0 {
+		rep[idx] = val
+		idx -= 1
 	}
 
 	return rep[idx + 1 :]
@@ -139,7 +182,7 @@ func Xor_h(lhs Hex_t, rhs Hex_t) Hex_t {
 	i, j := 1, 1
 
 	for ; len(lhs) - i >= 0 && len(rhs) - j >= 0; i, j = i + 1, j + 1 {
-		x[k] = (lhs[len(lhs) - i] ^ rhs[len(rhs) - j]) & 0xF
+		x[k] = lhs[len(lhs) - i] ^ rhs[len(rhs) - j]
 		k -= 1
 	}
 
@@ -160,19 +203,22 @@ func Xor_h(lhs Hex_t, rhs Hex_t) Hex_t {
 // SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t
 
 func main() {
-	debugModeActivated := true
+	debugModeActivated := false
 
 	if debugModeActivated {
 	    out = os.Stdout
-	} else {
-		out = ioutil.Discard
 	}
 
 	if len(os.Args) != 2 && len(os.Args) != 3 {
 		fmt.Printf("Usage: ./a <Hex string> [<Hex string>]\n")
 		return
 	} else if len(os.Args) == 2 {
-		fmt.Println(Cast_htob64(Decode_h(os.Args[1])))
+		fmt.Println("Hex   : ", os.Args[1])
+		fmt.Println("Base64: ", Cast_htob64(Decode_h(os.Args[1])))
+		fmt.Println("Base64:  SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t")
+
+		// fmt.Println("Base64: ", []byte(Cast_htob64(Decode_h(os.Args[1]))))
+		// fmt.Println("Base64: ", []byte(Decode_b64("Fc2hyb29t")))
 	} else {
 		x1 := Decode_h(os.Args[1])
 		x2 := Decode_h(os.Args[2])
@@ -181,6 +227,7 @@ func main() {
 
 		x3 := Xor_h(x1, x2)
 		fmt.Println(x3)
-		
 	}
+
+	fmt.Println(Cast_htoc(Decode_h("48656c6c6f")))
 }

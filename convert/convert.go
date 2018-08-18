@@ -1,4 +1,4 @@
-package main
+package convert
 
 import( "fmt"; "io"; "os"; "io/ioutil" )
 
@@ -213,12 +213,12 @@ func main() {
 		return
 	} else if len(os.Args) == 2 {
 		fmt.Println("Hex   : ", Decode_h(os.Args[1]))
-		// fmt.Println("Base64: ", (Cast_htob64(Decode_h(os.Args[1]))))
-		// fmt.Println("Should:  SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t")
-		// fmt.Println("      : ", (Decode_b64("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t")))
+		fmt.Println("Base64: ", (Cast_htob64(Decode_h(os.Args[1]))))
+		fmt.Println("Should:  SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t")
+		fmt.Println("      : ", (Decode_b64("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t")))
 
-		// fmt.Println("Base64: ", []byte(Cast_htob64(Decode_h(os.Args[1]))))
-		// fmt.Println("Base64: ", []byte(Decode_b64("Fc2hyb29t")))
+		fmt.Println("Base64: ", []byte(Cast_htob64(Decode_h(os.Args[1]))))
+		fmt.Println("Base64: ", []byte(Decode_b64("Fc2hyb29t")))
 	} else {
 		x1 := Decode_h(os.Args[1])
 		x2 := Decode_h(os.Args[2])
@@ -229,5 +229,5 @@ func main() {
 		fmt.Println(x3)
 	}
 
-	// fmt.Println(Cast_htos(Decode_h("48656c6c6f")))
+	fmt.Println(Cast_htos(Decode_h("48656c6c6f")))
 }

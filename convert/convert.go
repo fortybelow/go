@@ -1,4 +1,4 @@
-package convert
+package main
 
 import( "fmt"; "io"; "os"; "io/ioutil" )
 
@@ -11,6 +11,7 @@ type InvalidBase64Argument struct { arg uint8 }
 func (e InvalidHexCharacter)   Error() string { return fmt.Sprintf("Invalid Hex Character Received: %s",    string(e.arg)) }
 func (e InvalidBase64Argument) Error() string { return fmt.Sprintf("Invalid Base 64 Argument Received: %s", string(e.arg)) }
 
+
 // Given a hexadecimal character value, returns the actual value
 func Cast_rtoh(ch uint8) uint8 {
 	switch {
@@ -22,7 +23,17 @@ func Cast_rtoh(ch uint8) uint8 {
 			return ch - '0'
 	}
 
-	return 0
+	return ch
+}
+
+// Given a hexadecimal value, returns the character value
+func Cast_htor(b uint8) uint8 {
+	switch {
+		case b < 10:
+			return '0' + b
+		default:
+			return 'a' + (b - 10)
+	}
 }
 
 // Given a hexadecimal character value, returns the actual value
@@ -61,9 +72,9 @@ func Cast_btor(b uint8) uint8 {
 }
 
 
-
 type Hex_t    []uint8 // each uint8 contains two hex digits
 type Base64_t []uint8 // each uint8 contains 6 valid bits
+
 
 func (n Base64_t) String() string {
 	x := make(Base64_t, len(n))
@@ -74,12 +85,13 @@ func (n Base64_t) String() string {
 	return string(x)
 }
 
+
 func (n Hex_t) String() string {
 	x := make(Hex_t, len(n) * 2)
 
 	for i := 0; i < len(n); i++ {
-		x[2 * i    ] = Cast_rtoh( n[i] & 0xF )
-		x[2 * i + 1] = Cast_rtoh( n[i] & 0xF0 >> 4 )
+		x[2 * i    ] = Cast_htor( n[i] & 0xF0 >> 4 )
+		x[2 * i + 1] = Cast_htor( n[i] & 0x0F )
 	}
 
 	return string(x)
@@ -200,10 +212,10 @@ func main() {
 		fmt.Printf("Usage: ./a <Hex string> [<Hex string>]\n")
 		return
 	} else if len(os.Args) == 2 {
-		fmt.Println("Hex   : ", os.Args[1])
-		fmt.Println("Base64: ", (Cast_htob64(Decode_h(os.Args[1]))))
-		fmt.Println("Should:  SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t")
-		fmt.Println("      : ", (Decode_b64("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t")))
+		fmt.Println("Hex   : ", Decode_h(os.Args[1]))
+		// fmt.Println("Base64: ", (Cast_htob64(Decode_h(os.Args[1]))))
+		// fmt.Println("Should:  SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t")
+		// fmt.Println("      : ", (Decode_b64("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t")))
 
 		// fmt.Println("Base64: ", []byte(Cast_htob64(Decode_h(os.Args[1]))))
 		// fmt.Println("Base64: ", []byte(Decode_b64("Fc2hyb29t")))
@@ -217,5 +229,5 @@ func main() {
 		fmt.Println(x3)
 	}
 
-	fmt.Println(Cast_htos(Decode_h("48656c6c6f")))
+	// fmt.Println(Cast_htos(Decode_h("48656c6c6f")))
 }

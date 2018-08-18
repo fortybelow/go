@@ -1,4 +1,4 @@
-package main
+package convert
 
 import( "fmt"; "io"; "os"; "io/ioutil" )
 

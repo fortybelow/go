@@ -114,11 +114,15 @@ func Decode_h(s string) Hex_t {
 	return x
 }
 
-func Decode_b64(s string) Base64_t {
-	x := make(Base64_t, len(s))
-
+func Decode_b64(s string, ignoreNewlines bool) Base64_t {
+	x    := make(Base64_t, len(s))
+	step := 0
 	for i := 0; i < len(s); i++ {
-		x[i] = Cast_rtob64( s[i] )
+		if ignoreNewlines && (s[i] == byte('\n') || s[i] == byte('\r')) {
+			step += 1
+		} else {
+			x[i - step] = Cast_rtob64( s[i] )
+		}
 	}
 
 	return x

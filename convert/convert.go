@@ -125,7 +125,7 @@ func Decode_b64(s string, ignoreNewlines bool) Base64_t {
 		}
 	}
 
-	return x
+	return x{: len(x) - step}
 }
 
 func Cast_htos(h Hex_t) string {

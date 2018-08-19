@@ -37,7 +37,7 @@ func Cast_htor(b uint8) uint8 {
 }
 
 // Given a hexadecimal character value, returns the actual value
-func Cast_rtob(ch uint8) uint8 {
+func Cast_rtob64(ch uint8) uint8 {
 	switch {
 		case ch >= 'A' && ch <= 'Z':
 			return ch - 'A'
@@ -54,7 +54,7 @@ func Cast_rtob(ch uint8) uint8 {
 	return 0
 }
 
-func Cast_btor(b uint8) uint8 {
+func Cast_b64tor(b uint8) uint8 {
 	switch {
 		case b < 26:
 			return 'A' + b
@@ -80,7 +80,7 @@ func (n Base64_t) String() string {
 	x := make(Base64_t, len(n))
 
 	for i := 0; i < len(n); i++ {
-		x[i] = Cast_btor( n[i] )
+		x[i] = Cast_b64tor( n[i] )
 	}
 	return string(x)
 }
@@ -96,7 +96,6 @@ func (n Hex_t) String() string {
 
 	return string(x)
 }
-
 
 func Decode_h(s string) Hex_t {
 	b := len(s) % 2
@@ -119,7 +118,7 @@ func Decode_b64(s string) Base64_t {
 	x := make(Base64_t, len(s))
 
 	for i := 0; i < len(s); i++ {
-		x[i] = Cast_rtob( s[i] )
+		x[i] = Cast_rtob64( s[i] )
 	}
 
 	return x
@@ -172,6 +171,74 @@ func Cast_htob64(h Hex_t) Base64_t {
 	}
 
 	return rep[idx + 1 :]
+}
+
+
+// Expects Base64 in Big Endian order
+func Cast_b64toh(b Base64_t) Hex_t {
+	h         := make(Hex_t, len(b))
+	bit, hIdx := 0, len(h) - 1
+	var hi, lo, val uint8
+
+	for bIdx := len(b) - 1; bit + 8 <= 6 * len(b); bit += 8 {
+		switch bit % 24 {
+			case 0:
+				if bit > 0 { bIdx -= 1; }
+
+				hi, lo = b[bIdx - 1] & 0x03 << 6, b[bIdx    ] & 0x3F
+			case 8:
+				hi, lo = b[bIdx - 1] & 0x0F << 4, b[bIdx    ] & 0x3C >> 2
+			case 16:
+				hi, lo = b[bIdx - 1] & 0x3F << 2, b[bIdx    ] & 0x30 >> 4
+		}
+
+		bIdx -= 1
+		h[hIdx] = hi + lo
+		hIdx -= 1
+	}
+
+	switch 6 * len(b) - bit {
+		case 2:
+			val = b[0] & 0x30 >> 4
+		case 4:
+			val = b[0] & 0x3C >> 2
+		case 6:
+			val = b[0] & 0x3F
+	}
+
+	if val != 0 {
+		h[hIdx] = val
+		hIdx   -= 1
+	}
+
+	return h[hIdx + 1 :]
+}
+
+func CountBits(b uint8) int {
+	count := 0
+
+	for b > 0 {
+		b &= (b - 1)
+		count += 1
+	}
+
+	return count
+}
+
+func HammingDistanceS(a, b string) int {
+	distance := 0
+	for i := 0; i < len(a); i++ {
+		distance += CountBits(a[i] ^ b[i])
+	}
+	return distance
+}
+
+func HammingDistanceR(a, b []uint8) int {
+	distance := 0
+	for i := 0; i < len(a); i++ {
+		distance += CountBits(a[i] ^ b[i])
+	}
+	return distance
 }
 
 func Xor_h(lhs Hex_t, rhs Hex_t) Hex_t {

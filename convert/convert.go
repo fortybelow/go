@@ -289,10 +289,10 @@ func main() {
 		fmt.Println("Hex   : ", Decode_h(os.Args[1]))
 		fmt.Println("Base64: ", (Cast_htob64(Decode_h(os.Args[1]))))
 		fmt.Println("Should:  SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t")
-		fmt.Println("      : ", (Decode_b64("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t")))
+		fmt.Println("      : ", (Decode_b64("SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t", true)))
 
 		fmt.Println("Base64: ", []byte(Cast_htob64(Decode_h(os.Args[1]))))
-		fmt.Println("Base64: ", []byte(Decode_b64("Fc2hyb29t")))
+		fmt.Println("Base64: ", []byte(Decode_b64("Fc2hyb29t", true)))
 	} else {
 		x1 := Decode_h(os.Args[1])
 		x2 := Decode_h(os.Args[2])

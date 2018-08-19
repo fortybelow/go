@@ -177,24 +177,27 @@ func Cast_htob64(h Hex_t) Base64_t {
 // Expects Base64 in Big Endian order
 func Cast_b64toh(b Base64_t) Hex_t {
 	h         := make(Hex_t, len(b))
-	bit, hIdx := 0, len(h) - 1
+	bit, hIdx := 0, 0
 	var hi, lo, val uint8
 
-	for bIdx := len(b) - 1; bit + 8 <= 6 * len(b); bit += 8 {
+	for bIdx := 0; bit + 8 <= 6 * len(b); bit += 8 {
 		switch bit % 24 {
 			case 0:
-				if bit > 0 { bIdx -= 1; }
+				if bit > 0 { bIdx += 1; }
 
-				hi, lo = b[bIdx - 1] & 0x03 << 6, b[bIdx    ] & 0x3F
+				hi = b[bIdx    ] & 0x3F << 2
+				lo = b[bIdx + 1] & 0x30 >> 4
 			case 8:
-				hi, lo = b[bIdx - 1] & 0x0F << 4, b[bIdx    ] & 0x3C >> 2
+				hi = b[bIdx    ] & 0x0F << 4
+				lo = b[bIdx + 1] & 0x3C >> 2
 			case 16:
-				hi, lo = b[bIdx - 1] & 0x3F << 2, b[bIdx    ] & 0x30 >> 4
+				hi = b[bIdx    ] & 0x03 << 6
+				lo = b[bIdx + 1] & 0x3F
 		}
 
-		bIdx -= 1
+		bIdx += 1
 		h[hIdx] = hi + lo
-		hIdx -= 1
+		hIdx += 1
 	}
 
 	switch 6 * len(b) - bit {
@@ -208,10 +211,10 @@ func Cast_b64toh(b Base64_t) Hex_t {
 
 	if val != 0 {
 		h[hIdx] = val
-		hIdx   -= 1
+		hIdx   += 1
 	}
 
-	return h[hIdx + 1 :]
+	return h[: hIdx]
 }
 
 func CountBits(b uint8) int {
